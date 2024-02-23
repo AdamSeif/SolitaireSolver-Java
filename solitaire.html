@@ -1,0 +1,266 @@
+<html><head>
+        <style>            
+            div.col {
+                display: flex;
+                flex-direction: column;
+            }
+
+            ul.list {
+                display: flex;
+                flex-direction: row;
+            }
+            body.win {
+               background: linear-gradient(28deg, #bbf9c7, #ffffcc, #bbf9c7) no-repeat center center fixed;
+               background-size: cover; 
+            }
+            .list ul {
+                border: 1px solid black;
+                border-radius: 3px;
+                background:rgba(200,200,200,0.3);
+                margin: 2px;
+                display: inline-flex;
+                flex-direction: column;
+                transition: background 0.5s ease-in-out;
+            }
+
+            .list ul[data-state="first"] {
+                background: pink;
+            }
+
+            .list ul[data-state="second"] {
+                background: RGB(177,204,197);
+            }
+
+            .list ul::before {
+                content: attr(data-name);
+                color:gray;
+            }
+
+            .dom {
+                display: inline-block;
+                /*overflow: hidden; */
+                vertical-align: middle;
+                transition: background 0.5s ease-in-out;
+            }
+
+            .dom:hover {
+                scale: 1.25;
+                /*background: silver; */
+                text-shadow: 1px 1px #00000022;
+            }
+
+            .dom > div {
+                font-size: 38pt;
+                height: 20pt;
+                width: 38pt;
+                translate: 2pt -16pt;
+                transition: background 0.5s ease-in-out;
+            }
+        
+            .dom > div.new {
+                background: silver;
+            }
+            .list ul {
+                min-width: 40pt;
+                min-height: 50pt;
+                list-style-type: none;
+                margin: 2px;
+                padding: 1px;
+            }
+            main {
+                font-size:14pt;
+            }
+        </style>
+        <script defer="">
+            // domino details ------------------------------------------
+            const domM = ["🀱", "🀸", "🀹", "🀿", "🁀", "🁁", "🁆", "🁇", "🁈", "🁉", "🁍", "🁎", "🁏", "🁐", "🁑", "🁔", "🁕", "🁖", "🁗", "🁘", "🁙", "🁛", "🁜", "🁝", "🁞", "🁟", "🁠", "🁡"];
+const dom = ["&#127025;", "&#127032;", "&#127033;", "&#127039;", "&#127040;", "&#127041;", "&#127046;", "&#127047;", "&#127048;", "&#127049;", "&#127053;", "&#127054;", "&#127055;", "&#127056;", "&#127057;", "&#127060;", "&#127061;", "&#127062;", "&#127063;", "&#127064;", "&#127065;", "&#127067;", "&#127068;", "&#127069;", "&#127070;", "&#127071;", "&#127072;", "&#127073;", "&#127026;", "&#127027;", "&#127028;", "&#127029;", "&#127030;", "&#127031;"]
+            const domset = [];
+            let count = 0
+            for (let i = 0; i < 7; i++)
+                for (let j = 0; j <= i; j++) {
+                    domset[count] = {
+                        text: `${i}:${j}`,
+                        ch: dom[count],
+                        high: i,
+                        low: j,
+                        index: count
+                    }
+                    count++
+                }
+                
+            const shareOne = (x,y) => x?.high == y?.high || x?.low == y?.high || x?.high == y?.low || x?.low == y?.low
+            const upOne = (x,y) => shareOne(x,y) && (x?.high+x?.low ) == (y?.high+y?.low +1)
+
+            const subdom = x=>shuffle(domset.slice(0, (x + 1) * (x + 2) / 2))
+
+            const shuffle = array=>array.sort(()=>0.5 - Math.random());
+              
+            // board details -----------------
+            let moves = []
+            let move = {first:null, second:null}
+                
+            foundationClick = x => {
+                x.dataset.state = "second"
+                if (move.first != null && move.first.children.length!=0){
+                        const fDom = domset[getIndex(move.first)]
+                        // check if it can be 
+                        
+                        if (fDom.high == x.dataset.high) {
+                            const secondIndex = getIndex(x)
+                               
+                            if (x.children.length!=0) {
+                                if (upOne(domset[getIndex(x)],fDom)) moveDom(move.first,x)
+                            } else if (fDom.high == fDom.low) moveDom(move.first,x)
+                        }     
+                        setTimeout(resetMove(),500)
+                }
+                setTimeout(() => x.dataset.state = null,500)
+            }
+                
+            regularClick = x => {
+                if (move.first != null && move.first.children.length!=0){
+                    x.dataset.state = "second"
+                    const fDom = domset[getIndex(move.first)]
+                        
+                    if (x.children.length==0){
+                        if (fDom.low ==0)  moveDom(move.first,x)
+                    } else if (upOne(fDom,domset[getIndex(x)]))  moveDom(move.first,x)
+
+                    setTimeout(resetMove(),500)
+                    setTimeout(() => x.dataset.state = null,500)
+                } else if (x?.children.length!=0){
+                    move.first = x
+                    x.dataset.state = "first"                        
+                }                    
+            } 
+                
+            resetMove = () => {
+                const first = document.querySelector('ul.regular ul[data-state="first"]')
+                if (first!== null) first.dataset.state = null
+                move.first = null;   
+            }
+                
+            getIndex = (x) => x.lastChild?.dataset?.index
+
+            moveDom = (x,y,undo=false) => {
+                const d = x.lastChild
+                x.removeChild(d)
+                y.append(d)
+                if (!undo) moves.push({from:x,to:y})
+                checkWin()  
+            }
+
+            checkWin = () => {
+                 let nonEmpty = 0;
+                 document.querySelectorAll('ul.regular ul').forEach((x) => {
+                       if (x.children?.length >0)  nonEmpty++;
+                 })
+                 if (nonEmpty==0) {
+                         console.log("win")
+                         document.querySelector("body").classList.add("win")
+                 }
+            }
+                    
+                
+            document.addEventListener("DOMContentLoaded", function() {
+                // set max values
+                for (let i = 1; i < 7; i++) {
+                    const opt = document.createElement('option')
+                    opt.value = i
+                    opt.text = i + ""
+                    document.getElementById('max').appendChild(opt)
+                }
+                document.getElementById('max').value = "3"
+
+                // setup a board given a "max"
+                const go = document.getElementById('go')
+                go.addEventListener('click', ()=>{
+                    moves= []
+                    document.querySelector("body").classList.remove("win")
+                    const size = 1 * document.getElementById('max').value
+                    const found = document.getElementById('F')
+                    found.replaceChildren()
+                    const reg = document.getElementById('S')
+                    reg.replaceChildren()
+
+                    for (let i = 0; i <= size; i++) {
+                        const ulF = document.createElement('ul')
+                        ulF.dataset.name = "F" + i
+                        ulF.dataset.high = i*1
+                        found.appendChild(ulF)
+                        const ulS = document.createElement('ul')
+                        ulS.dataset.name = "S" + i
+                        reg.appendChild(ulS)
+                    }
+
+                    // fill the board with the tiles
+                    doms = subdom(size)
+                    let count = 0
+                    for (let i = 0; i <= size; i++) {
+                        let reg = document.querySelector(`[data-name="S${i}"]`);
+
+                        for (let j = 0; j <= i; j++) {
+                            const li = document.createElement('li')
+                            li.classList.add("dom")
+                            li.dataset.index =doms[count].index
+                            li.innerHTML = `<div data-dom="${doms[count].text}">${doms[count].ch}</div>`
+                            reg.appendChild(li)
+                            count++
+                        }
+                    }
+
+                    // set up the responses
+                    document.querySelectorAll('ul.foundation ul').forEach((x)=>{
+                        x.addEventListener('click', ()=>{
+                            foundationClick(x);
+                        })
+                    })
+                    document.querySelectorAll('ul.regular ul').forEach((x)=>{
+                        x.addEventListener('click', ()=>{
+                            regularClick(x);
+                        })
+                    })
+                })
+                go.click()
+                document.getElementById('undo').addEventListener('click', ()=>{
+                    if(moves.length>0) {
+                        const unmove = moves.pop()
+                        moveDom(unmove.to,unmove.from,true)
+                    }
+                })
+            })
+        </script>
+    <link rel="stylesheet" href="/C_2Mce673FzHBZnf"></head>
+    <body class="vsc-initialized">
+        <header>
+            <h1>DomSolitaire</h1>
+            <h3>
+                max <select id="max"><option value="1">1</option><option value="2">2</option><option value="3">3</option><option value="4">4</option><option value="5">5</option><option value="6">6</option></select>
+                <button id="go">go</button>
+            </h3>
+        </header>
+        <main>
+            <button id="undo">undo</button>       
+
+            <div class="col">
+                <ul id="F" class="list foundation"><ul data-name="F0" data-high="0"></ul><ul data-name="F1" data-high="1"></ul><ul data-name="F2" data-high="2"></ul><ul data-name="F3" data-high="3"></ul></ul>
+            </div>
+            <div class="col">
+                <ul id="S" class="list regular"><ul data-name="S0"><li class="dom" data-index="3"><div data-dom="2:0">🀿</div></li></ul><ul data-name="S1"><li class="dom" data-index="1"><div data-dom="1:0">🀸</div></li><li class="dom" data-index="0"><div data-dom="0:0">🀱</div></li></ul><ul data-name="S2"><li class="dom" data-index="2"><div data-dom="1:1">🀹</div></li><li class="dom" data-index="9"><div data-dom="3:3">🁉</div></li><li class="dom" data-index="4"><div data-dom="2:1">🁀</div></li></ul><ul data-name="S3"><li class="dom" data-index="5"><div data-dom="2:2">🁁</div></li><li class="dom" data-index="6"><div data-dom="3:0">🁆</div></li><li class="dom" data-index="7"><div data-dom="3:1">🁇</div></li><li class="dom" data-index="8"><div data-dom="3:2">🁈</div></li></ul></ul>
+            </div>
+            <p> Click on the S# stacks and then on a destination stack (S# or F#) to move a tile. If it's a valid move then a domino tile will move. 
+            The goal is to move all the domino tiles to the F# stacks. </p>
+            <h3>Valid Moves</h3>
+            <ol>
+                <li>S# to F# 
+                        <ul><li>the tile from the bottom of S# can add to F# if F# retains the property that it's tiles must start with a double corresponding it's # and then descend sequentially down with the highest number in the each domino being #</li></ul></li>
+                <li>S# to S# 
+                        <ul><li>if the destination is empty, the tile must contain a blank </li>
+                            <li>if the destination isn't empty, the tile must match one of the numbers in tile at the bottom of the destination and have the other number ascend (be one above).</li>
+                        </ul></li>
+            </ol>
+        </main>
+    
+
+</body></html>
